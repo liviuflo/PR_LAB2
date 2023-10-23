@@ -32,10 +32,10 @@ class HF:
         self.pk = Histogram2D(self.num_bins_x, self.num_bins_y, self.x_range, self.y_range)
 
         try:
-            self.Pk=np.load("StateTransitionProbability.npy", allow_pickle=True) # Loaded from file if existing
+            self.Pk=np.load("StateTransitionProbability.npy", allow_pickle=True)
         except:
-            self.Pk = self.StateTransitionProbability()         # computed in a child class if not existing
-            np.save("StateTransitionProbability", self.Pk)      # saved to file for future use
+            self.Pk = self.StateTransitionProbability()
+            np.save("StateTransitionProbability", self.Pk)
 
         super().__init__(*args)
 
@@ -46,9 +46,18 @@ class HF:
         :param displacemt: input displacement in meters
         :return: displacement in cells
         """
-        cell=int( displacemt / self.cell_size)
+        cell=int( displacemt / self.cell_size_x)
 
         return cell
+
+    def DiscretizeInput(self, uk):
+        """
+        Discretizes the control input *u*. To be overriden by the derived class.
+        :param u: control input
+        :return: discretized control input
+        """
+
+        pass
 
     def StateTransitionProbability(self):
         """
@@ -81,6 +90,13 @@ class HF:
         pass
 
     def uk2cell(self, uk):
+        """
+        Converts the *uk* to an index that can be used to access the state transition probability matrix *Pk*.
+        This is a pure virtual method that must be implemented by the derived class.
+
+        :param uk: cell displacement expressed in the N-Frame. Might be possitive or negative
+        :return: index to access the state transition probability matrix *Pk*.
+        """
         pass
 
     def Prediction(self, pk_1, uk):
@@ -94,9 +110,10 @@ class HF:
         :return: *pk_hat* predicted probability histogram
         """
 
-        # TODO: To be implemented by the Student
+        cell_uk= self.uk2cell(uk)
+        self.pk_hat.histogram_1d = self.StateTransitionProbability_4_uk(cell_uk) @ pk_1.histogram_1d
 
-        pass
+        return self.pk_hat
 
     def Update(self,pk_hat, zk):
         """
@@ -105,8 +122,8 @@ class HF:
         :param zk: measurement
         :return: pk: updated probability histogram
         """
+        self.pk = self.MeasurementProbability(zk) * pk_hat
+        self.pk.histogram_1d /= np.sum(self.pk.histogram_1d)
 
-        # TODO: To be implemented by the Student
+        return self.pk
 
-
-        pass
