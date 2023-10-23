@@ -56,16 +56,20 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
 
         # Initialize the motion model noise
         self.Qsk = np.diag(np.array([0.1 ** 2, 0.01 ** 2, np.deg2rad(1) ** 2]))  # simulated acceleration noise
+        # self.Qsk = np.diag(np.array([0, 0, 0]))  # simulated acceleration noise
         self.usk = np.zeros((3, 1))  # simulated input to the motion model
 
         # Inititalize the robot parameters
         self.wheelBase = 0.5  # distance between the wheels
         self.wheelRadius = 0.1  # radius of the wheels
         self.pulse_x_wheelTurns = 1024  # number of pulses per wheel turn
+        self.encoder_readings = np.array([[0, 0]], dtype=np.float32).T
 
         # Initialize the sensor simulation
         self.encoder_reading_frequency = 1  # frequency of encoder readings
         self.Re= np.diag(np.array([22 ** 2, 22 ** 2]))  # covariance of simulated wheel encoder noise
+        # self.Re= np.diag(np.array([40 ** 2, 40 ** 2]))  # covariance of simulated wheel encoder noise
+        # self.Re= np.diag(np.array([0, 0]))  # covariance of simulated wheel encoder noise
 
         self.Polar2D_feature_reading_frequency = 50  # frequency of Polar2D feature readings
         self.Polar2D_max_range = 50  # maximum Polar2D range, used to simulate the field of view
@@ -107,9 +111,41 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
         :return: current robot state :math:`x_{s_k}`
         """
 
-        # TODO: to be completed by the student
+        eta_sk_1 = Pose3D(xsk_1[:3])
+        nu_sk_1 = Pose3D(xsk_1[3:6])
+        nu_d = np.array([[usk[0][0], 0, usk[1][0]]]).T
 
-        pass
+        wsk = np.reshape(np.random.normal(np.zeros_like(self.Qsk), self.Qsk).diagonal(), (3, 1))
+
+        eta_operand = nu_sk_1 * self.dt + 0.5 * wsk * self.dt ** 2
+        eta_sk = eta_sk_1.oplus(eta_operand)
+
+        K = np.diag(np.array([1, 1, 1]))
+
+        nu_sk = nu_sk_1 + np.matmul(K, (nu_d - nu_sk_1)) + wsk * self.dt
+
+        self.xsk = np.concatenate([eta_sk, nu_sk])
+
+        # Convert forward and angular velocity into wheel velocity, to compute distance travelled by the wheel
+        fwd_velocity, angular_velocity = usk[0][0], usk[1][0]
+        radius = self.wheelBase / 2
+        wheel_velocity = (
+             np.full_like(self.encoder_readings, fwd_velocity) + # forward velocity component
+             radius * np.array([[-angular_velocity, angular_velocity]]).T # angular velocity component
+             )
+        wheel_distance = self.dt * wheel_velocity
+        self.encoder_readings += np.round(wheel_distance * self.pulse_x_wheelTurns / (2 * pi * self.wheelRadius))
+
+        if self.k % self.visualizationInterval == 0:
+                self.PlotRobot()
+                self.xTraj.append(self.xsk[0, 0])
+                self.yTraj.append(self.xsk[1, 0])
+                self.trajectory.pop(0).remove()
+                self.trajectory = plt.plot(self.xTraj, self.yTraj, marker='.', color='orange', markersize=1)
+
+        self.k += 1
+        return self.xsk
+
 
     def ReadEncoders(self):
         """ Simulates the robot measurements of the left and right wheel encoders.
@@ -118,20 +154,16 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
 
         :return zsk,Rsk: :math:`zk=[n_L~n_R]^T` observation vector containing number of pulses read from the left and right wheel encoders. :math:`R_{s_k}=diag(\\sigma_L^2,\\sigma_R^2)` covariance matrix of the read pulses.
         """
-
-        # TODO: to be completed by the student
-
-        pass
+        noise = np.reshape(np.random.normal(0, self.Re).diagonal(), (2, 1)).round().astype(np.int32)
+        return self.encoder_readings + noise, self.Re
+        
 
     def ReadCompass(self):
         """ Simulates the compass reading of the robot.
 
         :return: yaw and the covariance of its noise *R_yaw*
         """
-
-        # TODO: to be completed by the student
-
-        pass
+        return self.xsk[2, 0], np.random.normal(0, self.v_yaw_std)
 
     def PlotRobot(self):
         """ Updates the plot of the robot at the current pose """
@@ -140,3 +172,59 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
         plt.pause(0.0000001)
         return
 
+
+def __run_robot(robot: SimulatedRobot, steps: int, forward_velocity: float, angular_velocity: float):
+    usk = np.array([[forward_velocity, angular_velocity]]).T
+    for _ in range(steps):
+        robot.fs(robot.xsk, usk)
+
+
+def run_circle():
+    robot = DifferentialDriveSimulatedRobot(np.zeros((6, 1)))
+
+    __run_robot(
+        robot,
+        steps=10000,
+        forward_velocity=1,
+        angular_velocity=0.01,
+    )
+
+
+def run_eight():
+    robot = DifferentialDriveSimulatedRobot(np.zeros((6, 1)))
+
+    d = 5
+
+    steps = 500
+    straight_steps = int(2 * steps)
+    circle_steps = int(1.5 * pi * steps)
+
+    base_velocity = 10 / steps
+    forward_velocity = d * base_velocity
+    angular_velocity = base_velocity
+
+    for _ in range(3):
+        __run_robot(robot, straight_steps, forward_velocity, 0)
+        __run_robot(robot, circle_steps, forward_velocity, angular_velocity)
+        __run_robot(robot, straight_steps, forward_velocity, 0)
+        __run_robot(robot, circle_steps, forward_velocity, -angular_velocity)
+
+
+def run_eight_simple():
+    robot = DifferentialDriveSimulatedRobot(np.zeros((6, 1)))
+
+    speed_factor = 1
+
+    circle_steps = int(2 * pi * 1000 / speed_factor)
+
+    forward_velocity = 0.1 * speed_factor
+    angular_velocity = 0.01 * speed_factor
+
+    for _ in range(3):
+        __run_robot(robot, circle_steps, forward_velocity, angular_velocity)
+        __run_robot(robot, circle_steps, forward_velocity, -angular_velocity)
+
+if __name__ == "__main__":
+    # run_circle()
+    run_eight()
+    # run_eight_simple()
