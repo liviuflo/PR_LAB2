@@ -163,7 +163,7 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
 
         :return: yaw and the covariance of its noise *R_yaw*
         """
-        return self.xsk[2, 0], np.random.normal(0, self.v_yaw_std)
+        return self.xsk[2, 0] + np.random.normal(0, self.v_yaw_std), self.v_yaw_std
 
     def PlotRobot(self):
         """ Updates the plot of the robot at the current pose """
