@@ -163,7 +163,13 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
 
         :return: yaw and the covariance of its noise *R_yaw*
         """
-        return self.xsk[2, 0] + np.random.normal(0, self.v_yaw_std), self.v_yaw_std
+        double_pi = 2 * np.pi
+        raw_compass_value = self.xsk[2, 0] + np.random.normal(0, self.v_yaw_std)
+        if raw_compass_value >= double_pi or raw_compass_value < 0:
+            raw_compass_value -= double_pi * (raw_compass_value // double_pi)
+
+        return raw_compass_value, self.v_yaw_std
+
 
     def PlotRobot(self):
         """ Updates the plot of the robot at the current pose """
