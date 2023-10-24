@@ -102,17 +102,15 @@ class GL(HF):
         pk_1 = p0
 
         for self.k in range(self.kSteps):
-            self.robot.fs(self.robot.xsk, usk)
-            uk = self.GetInput(usk) 
-            # uk = self.GetInput(usk) # Simulate robot motion for several steps
-            # xsk = self.robot.fs(xsk_1, usk)  # Simulate the robot motion
-            # uk = self.GetInput()  # Get the input from the robot
+            uk = self.GetInput(usk) # Simulate robot motion for one or more steps
+            print(f"{self.k} Total displacement {uk}")
 
             zk = self.GetMeasurements()
             self.pk = self.Localize(pk_1, uk, zk)  # Localize the robot
             pk_1 = self.pk
 
             self.pk.plot_histogram() # Plot the location belief
+            plt.savefig(f"outputs/output_{self.k}.jpg", dpi=150)
 
         plt.show()
         return
@@ -130,12 +128,7 @@ class GL(HF):
         """
 
         # Do prediction (total probability) using uk
-        # TODO in part 2
-        
-        # Mock pk_hat - uniform belief for all cells
-        pk_hat = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
-        pk_hat.histogram = np.ones(pk_hat.num_bins_x * pk_hat.num_bins_y)
-        pk_hat.histogram /= np.sum(pk_hat.histogram)
+        pk_hat = self.Prediction(pxk_1, uk)
         
         # Do update using zk
         self.Update(pk_hat, zk)
