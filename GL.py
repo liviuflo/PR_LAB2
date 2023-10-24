@@ -131,6 +131,7 @@ class GL(HF):
 
         # Do prediction (total probability) using uk
         # TODO in part 2
+        
         # Mock pk_hat - uniform belief for all cells
         pk_hat = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
         pk_hat.histogram = np.ones(pk_hat.num_bins_x * pk_hat.num_bins_y)

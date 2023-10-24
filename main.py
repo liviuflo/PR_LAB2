@@ -17,6 +17,7 @@ index = [IndexStruct("x", 0, None), IndexStruct("y", 1, None),
          IndexStruct("yaw", 2, 1)]  # index of the state vector used for plotting
 
 num_bins_x, num_bins_y, x_size, y_size = 21, 21, 10, 10
+# num_bins_x, num_bins_y, x_size, y_size = 50, 50, 10, 10
 nCells = num_bins_x * num_bins_y
 dx_max, dy_max = 1, 1
 x_range, y_range = np.linspace(-x_size, x_size, num_bins_x), np.linspace(-y_size, y_size, num_bins_y)

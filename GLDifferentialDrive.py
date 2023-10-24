@@ -1,7 +1,7 @@
 from GL import GL
 from DifferentialDriveSimulatedRobot import *
 from DR_3DOFDifferentialDrive import *
-from scipy import stats
+from math import exp, sqrt, pi
 from Pose3D import *
 from Histogram import *
 
@@ -114,7 +114,10 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
 
         total_p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
 
-        sigma = 1
+        def pdf(mean, sigma, x):
+            """Compute the PDF for a normal distribution. A lot faster that scipy.stats.norm(mean, sigma).pdf(x)"""
+            return 1 / (sigma * sqrt(2 * pi)) * exp(- (x-mean)**2 / (2 * sigma**2))
+
 
         for f, feature_distance in zk:
             p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
@@ -122,9 +125,9 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
             for y_bin, y_centre in zip(p_z.y_range, p_z.y_center_range):
                 for x_bin, x_centre in zip(p_z.x_range, p_z.x_center_range):
                     cell_centre_position = np.array([[x_centre, y_centre]]).T
-                    distance = np.linalg.norm(cell_centre_position - f)
+                    true_distance = np.linalg.norm(cell_centre_position - f)
 
-                    probability = scipy.stats.norm(loc=distance, scale=sigma).pdf(feature_distance)
+                    probability = pdf(true_distance, self.sigma_d, feature_distance)
                     p_z.element[x_bin, y_bin] = probability
 
             p_z.histogram_1d /= np.sum(p_z.histogram_1d)
