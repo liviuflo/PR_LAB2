@@ -44,9 +44,16 @@ class Pose3D(np.ndarray):
         :returns: C-Frame pose expressed in A-Frame coordinates
         """
 
-        # TODO: to be completed by the student
+        a_x_b, a_y_b, a_psi_b = np.squeeze(AxB)
+        b_x_c, b_y_c, b_psi_c = np.squeeze(BxC)
 
-        pass
+        return Pose3D(
+            np.array([[
+                a_x_b + b_x_c * cos(a_psi_b) - b_y_c * sin(a_psi_b),
+                a_y_b + b_x_c * sin(a_psi_b) - b_y_c * cos(a_psi_b),
+                a_psi_b + b_psi_c
+            ]]).T
+        )
 
     def ominus(AxB):
         """
@@ -64,7 +71,12 @@ class Pose3D(np.ndarray):
         :returns: A-Frame pose expressed in B-Frame coordinates (eq. :eq:`eq-ominus3dof`)
         """
 
-        # TODO: to be completed by the student
-
-        pass
+        a_x_b, a_y_b, a_psi_b = np.squeeze(AxB)
+        return Pose3D(
+            np.array([[
+                - a_x_b * cos(a_psi_b) - a_y_b * sin(a_psi_b),
+                a_x_b * sin(a_psi_b) - a_y_b * cos(a_psi_b),
+                - a_psi_b
+            ]]).T
+        )
 
