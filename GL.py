@@ -71,7 +71,7 @@ class GL(HF):
         Gets the number of cells the robot has displaced along its DOFs in the world N-Frame.
         Method to be overriden by the child class.
 
-        :param usk: control input of the robot simulation. Required becaus it might be necessearey to call the
+        :param usk: control input of the robot simulation. Required because it might be necessary to call the
         :meth:`SimulatedRobot.fs` method iterative until the robot displace at least one cell.
         :return: uk: vector containing the number of cells the robot has displaced in all the axis of the world N-Frame
         """
@@ -93,18 +93,35 @@ class GL(HF):
         Given an initial position histogram :math:`p_0` and the input to the :class:`DifferentialDrive.SimulatedRobot`
         this method calls iteratively :meth:`GL.Localize` for k steps, solving the robot localization problem.
 
+        *** To be implemented by the student ***
+
         :param p0: initial robot pose
         :param usk: control input of the robot simulation
-
         """
 
-        # TODO: To be implemented by the student
+        pk_1 = p0
 
-        pass
+        for self.k in range(self.kSteps):
+            self.robot.fs(self.robot.xsk, usk)
+            uk = self.GetInput(usk) 
+            # uk = self.GetInput(usk) # Simulate robot motion for several steps
+            # xsk = self.robot.fs(xsk_1, usk)  # Simulate the robot motion
+            # uk = self.GetInput()  # Get the input from the robot
+
+            zk = self.GetMeasurements()
+            self.pk = self.Localize(pk_1, uk, zk)  # Localize the robot
+            pk_1 = self.pk
+
+            self.pk.plot_histogram() # Plot the location belief
+
+        plt.show()
+        return
 
     def Localize(self, pxk_1, uk, zk):
         """
         Solves a localization iteration calling, successively to the :meth:`HF.Prediction` first, followed by the :meth:`HF.Update`.
+
+        *** To be implemented by the student ***
 
         :param pxk_1: histogram of the previous robot position
         :param uk: robot displacement in number of cells in the world N-Frame
@@ -112,10 +129,17 @@ class GL(HF):
         :return: pk: histogram of the robot position after the prediction and the update steps
         """
 
-        # TODO: To be implemented by the student
+        # Do prediction (total probability) using uk
+        # TODO in part 2
+        # Mock pk_hat - uniform belief for all cells
+        pk_hat = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
+        pk_hat.histogram = np.ones(pk_hat.num_bins_x * pk_hat.num_bins_y)
+        pk_hat.histogram /= np.sum(pk_hat.histogram)
+        
+        # Do update using zk
+        self.Update(pk_hat, zk)
 
-        pass
-
+        return self.pk
 
 
 

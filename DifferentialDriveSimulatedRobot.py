@@ -77,8 +77,9 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
 
         self.xy_feature_reading_frequency = 50  # frequency of XY feature readings
         self.xy_max_range = 50  # maximum XY range, used to simulate the field of view
+        self.Rdist_std = 0.5 # standard deviation of range readings noise
 
-        self.yaw_reading_frequency = 10  # frequency of Yasw readings
+        self.yaw_reading_frequency = 1  # frequency of Yaw readings
         self.v_yaw_std = np.deg2rad(5)  # std deviation of simulated heading noise
 
     def fs(self, xsk_1, usk):  # input velocity motion model with velocity noise
@@ -169,7 +170,26 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
             raw_compass_value -= double_pi * (raw_compass_value // double_pi)
 
         return raw_compass_value, self.v_yaw_std
+    
 
+    def ReadRanges(self):
+        """ Simulates reading the distances to the features in the environment.
+
+        return: distance to each of the features
+        """
+
+        features_and_distances = []
+        for f in self.M:
+            actual_distance = np.linalg.norm(self.xsk[:2] - f)
+            if actual_distance > self.xy_max_range:
+                # Outside range
+                continue
+            
+            noise = np.random.normal(0, self.Rdist_std)
+            features_and_distances.append((f, actual_distance + noise))
+
+        return features_and_distances
+        
 
     def PlotRobot(self):
         """ Updates the plot of the robot at the current pose """

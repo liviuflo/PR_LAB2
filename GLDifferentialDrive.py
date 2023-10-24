@@ -45,11 +45,12 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         Only those features that are within the :attr:`SimulatedRobot.SimulatedRobot.Distance_max_range` of the sensor are returned.
         The measurements arribe at a frequency defined in the :attr:`SimulatedRobot.SimulatedRobot.Distance_feature_reading_frequency` attribute.
 
+        *** To be implemented by the student ***
+
         :return: vector of distances to the map features
         """
-        # TODO: To be implemented by the student
 
-        pass
+        return self.robot.ReadRanges()
 
     def StateTransitionProbability_4_uk(self,uk):
         return self.Pk[uk[0, 0], uk[1, 0]]
@@ -105,14 +106,33 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         Computes the measurement probability histogram given the robot pose :math:`\eta_k` and the measurement :math:`z_k`.
         In this case the the measurement is the vector of the distances to the landmarks in the map.
 
+        *** To be implemented by the student ***
+
         :param zk: :math:`z_k=[r_0~r_1~..r_k]` where :math:`r_i` is the distance to the i-th landmark in the map.
         :return: Measurement probability histogram :math:`p_z=p(z_k | \eta_k)`
-
         """
 
-        # TODO: To be implemented by the student
+        total_p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
 
-        pass
+        sigma = 1
+
+        for f, feature_distance in zk:
+            p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
+
+            for y_bin, y_centre in zip(p_z.y_range, p_z.y_center_range):
+                for x_bin, x_centre in zip(p_z.x_range, p_z.x_center_range):
+                    cell_centre_position = np.array([[x_centre, y_centre]]).T
+                    distance = np.linalg.norm(cell_centre_position - f)
+
+                    probability = scipy.stats.norm(loc=distance, scale=sigma).pdf(feature_distance)
+                    p_z.element[x_bin, y_bin] = probability
+
+            p_z.histogram_1d /= np.sum(p_z.histogram_1d)
+            total_p_z.histogram_1d += p_z.histogram_1d
+
+        total_p_z.histogram_1d /= len(zk)
+
+        return total_p_z
 
     def GetInput(self,usk):
         """
@@ -127,8 +147,14 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :param usk: control input of the robot simulation
         :return: uk: vector containing the number of cells the robot has displaced in the x and y directions in the world N-Frame
         """
+        
+        # self.Delta_etak = Pose3D(np.zeros((3, 1)))
+        # while np.sum(self.Delta_etak) == 0:
+        #     xsk = self.robot.fs(self.robot.xsk, usk)
 
-        # TODO: To be implemented by the student
+        #     displacement = 
+
+        #     self.Deltax = 
 
         pass
 
