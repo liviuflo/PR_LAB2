@@ -5,6 +5,10 @@ from math import exp, sqrt, pi
 from Pose3D import *
 from Histogram import *
 
+def pdf(mean, sigma, x):
+    """Compute the PDF for a normal distribution. A lot faster that scipy.stats.norm(mean, sigma).pdf(x)"""
+    return 1 / (sigma * sqrt(2 * pi)) * exp(- (x-mean)**2 / (2 * sigma**2))
+
 class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
     """
     Grid Reckoning Localization for a 3 DOF Differential Drive Mobile Robot.
@@ -26,9 +30,9 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :param args: additional arguments
         """
 
-        super().__init__(p0, index, kSteps, robot, x0, *args)
-
         self.sigma_d = 1
+
+        super().__init__(p0, index, kSteps, robot, x0, *args)
 
         self.range_dx = range_dx
         self.range_dy = range_dy
@@ -38,6 +42,8 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         self.Delta_etak = Pose3D(np.zeros((3, 1)))
 
         self.cell_size = self.pk_1.cell_size_x  # cell size is the same for x and y
+
+        self.uk_1 = np.zeros((2, 1), dtype=np.float32)
 
     def GetMeasurements(self):
         """
@@ -59,6 +65,8 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         """
         Computes the state transition probability histogram given the previous robot pose :math:`\eta_{k-1}` and the input :math:`u_k`:
 
+        *** To be implemented by the student ***
+
         .. math::
 
             p(\eta_k | \eta_{k-1}, u_k)
@@ -68,10 +76,19 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :return: state transition probability :math:`p_k=p(\eta_k | \eta_{k-1}, u_k)`
 
         """
+        target_position = etak_1 + uk
 
-        # TODO: To be implemented by the student
+        p_k = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
 
-        pass
+        for x_bin in p_k.x_range:
+            for y_bin in p_k.y_range:
+                current_position = np.array([[x_bin, y_bin]]).T
+                distance = np.linalg.norm(current_position - target_position)
+
+                p_k.element[x_bin, y_bin] = pdf(0, self.sigma_d, distance)
+
+        return p_k
+        
 
     def StateTransitionProbability(self):
         """
@@ -80,26 +97,50 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :math:`n` is the number of cells in the map. For each possible displacement :math:`u_k`, each previous robot pose
         :math:`{x_{k-1}}` and each current robot pose :math:`{x_k}`, the probability :math:`p(x_k|x_{k-1},u_k)` is computed.
 
+        *** To be implemented by the student ***
 
         :return: state transition probability matrix :math:`P_k=p{x_k|x_{k-1},uk}`
         """
 
-        # TODO: To be implemented by the student
+        transition_matrix = np.zeros((3, 3, self.p0.nCells, self.p0.nCells))
 
-        pass
+        for delta_x in range(3):
+            for delta_y in range(3):
+                uk = np.array([[delta_x - 1, delta_y - 1]]).T
+                print("Computing transition matrix for Uk:", uk)
+
+                # n**2 rows, n**2 columns
+                p_uk = np.zeros((self.p0.nCells, self.p0.nCells))
+
+                # each column stores the values of p(etak|uk, etak_1)
+                for column in range(self.p0.nCells):
+                    index_y = column // self.p0.num_bins_x
+                    index_x = column % self.p0.num_bins_x
+
+                    etak_1 = np.array([[self.p0.x_range[index_x], self.p0.y_range[index_y]]]).T
+                    
+                    transition = self.StateTransitionProbability_4_xk_1_uk(etak_1, uk)
+                    p_uk[:, column] = transition.histogram_1d
+
+                transition_matrix[delta_x, delta_y] = p_uk
+
+        self.Pk = transition_matrix
+        return self.Pk
 
     def uk2cell(self, uk):
         """"
         Converts the number of cells the robot has displaced along its DOFs in the world N-Frame to an index that can be
         used to acces the state transition probability matrix.
 
+        *** To be implemented by the student ***
+
         :param uk: vector containing the number of cells the robot has displaced in all the axis of the world N-Frame
         :returns: index: index that can be used to access the state transition probability matrix
         """
-
-        # TODO: To be implemented by the student
-
-        pass
+        
+        uk = np.round(uk).astype(np.int32)
+        return uk + np.ones_like(uk)
+        
 
     def MeasurementProbability(self, zk):
         """
@@ -113,11 +154,6 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         """
 
         total_p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
-
-        def pdf(mean, sigma, x):
-            """Compute the PDF for a normal distribution. A lot faster that scipy.stats.norm(mean, sigma).pdf(x)"""
-            return 1 / (sigma * sqrt(2 * pi)) * exp(- (x-mean)**2 / (2 * sigma**2))
-
 
         for f, feature_distance in zk:
             p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
@@ -136,7 +172,7 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         total_p_z.histogram_1d /= len(zk)
         return total_p_z
 
-    def GetInput(self,usk):
+    def GetInput(self, usk):
         """
         Provides an implementation for the virtual method :meth:`GL.GetInput`.
         Gets the number of cells the robot has displaced in the x and y directions in the world N-Frame. To do it, it
@@ -150,7 +186,46 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :return: uk: vector containing the number of cells the robot has displaced in the x and y directions in the world N-Frame
         """
 
-        pass
+        def absolute_displacement(delta):
+            """ Compute the absolute cell displacement based on a metric delta. """
+            return abs(delta) // self.cell_size
+        
+        def true_displacement(delta):
+            """ Given a metric delta, compute the corresponding cell displacement. """
+            return absolute_displacement(delta) if delta > 0 else -absolute_displacement(delta)
 
 
+        while absolute_displacement(self.Deltax) + absolute_displacement(self.Deltay) == 0:
+            # Run a simulation step
+            self.robot.fs(self.robot.xsk, usk)
 
+            # Get encoder readings
+            uk = DR_3DOFDifferentialDrive.GetInput(self)
+            
+            # Convert encoder readings to raw displacement
+            delta_reading = (uk - self.uk_1)
+            wheel_distance = delta_reading * 2 * pi * self.wheelRadius / self.robot.pulse_x_wheelTurns
+            wheel_velocity = wheel_distance / self.dt
+            forward_velocity = np.mean(wheel_velocity)
+            angular_velocity = ((wheel_velocity - forward_velocity) / (self.wheelBase / 2))[1][0]
+
+            expanded_uk = np.array([[forward_velocity, 0, angular_velocity]]).T
+
+            # Compute displacement
+            self.xk = self.xk_1.oplus(expanded_uk * self.dt)
+            self.Delta_etak = self.xk - self.xk_1
+            
+            # Accumulate displacement
+            self.Deltax += self.Delta_etak[0][0]
+            self.Deltay += self.Delta_etak[1][0]
+
+            self.uk_1 = uk
+            self.xk_1 = self.xk
+
+        displacement_x, displacement_y = true_displacement(self.Deltax), true_displacement(self.Deltay)
+
+        # Partially reset deltas (will bring them to [-cell size, cell size])
+        self.Deltax -= displacement_x
+        self.Deltay -= displacement_y
+
+        return np.array([[displacement_x, displacement_y]]).T
