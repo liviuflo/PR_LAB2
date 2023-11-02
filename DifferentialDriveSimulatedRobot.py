@@ -175,7 +175,7 @@ class DifferentialDriveSimulatedRobot(SimulatedRobot):
     def ReadRanges(self):
         """ Simulates reading the distances to the features in the environment.
 
-        return: distance to each of the features
+        return: a list of (feature position, distance to feature) tuples
         """
 
         features_and_distances = []
