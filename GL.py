@@ -108,7 +108,6 @@ class GL(HF):
             pk_1 = self.pk
 
             self.pk.plot_histogram() # Plot the location belief
-            # plt.savefig(f"outputs/output_{self.k}.jpg", dpi=150)
 
         plt.show()
         return
