@@ -58,8 +58,8 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
 
         return self.robot.ReadRanges()
 
-    def StateTransitionProbability_4_uk(self,cell_uk):
-        return self.Pk[cell_uk]
+    def StateTransitionProbability_4_uk(self,uk):
+        return self.Pk[uk[0, 0], uk[1, 0]]
 
     def StateTransitionProbability_4_xk_1_uk(self, etak_1, uk):
         """
@@ -139,7 +139,7 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         """
         
         uk = np.round(uk).astype(np.int32)
-        return (uk[0][0] + 1, uk[1][0] + 1)
+        return uk + np.ones_like(uk)
         
 
     def MeasurementProbability(self, zk):
