@@ -103,8 +103,6 @@ class GL(HF):
 
         for self.k in range(self.kSteps):
             uk = self.GetInput(usk) # Simulate robot motion for one or more steps
-            print(f"{self.k} Total displacement {uk}")
-
             zk = self.GetMeasurements()
             self.pk = self.Localize(pk_1, uk, zk)  # Localize the robot
             pk_1 = self.pk
