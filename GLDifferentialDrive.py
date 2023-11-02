@@ -134,7 +134,6 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
             total_p_z.histogram_1d += p_z.histogram_1d
 
         total_p_z.histogram_1d /= len(zk)
-
         return total_p_z
 
     def GetInput(self,usk):
@@ -150,14 +149,6 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         :param usk: control input of the robot simulation
         :return: uk: vector containing the number of cells the robot has displaced in the x and y directions in the world N-Frame
         """
-        
-        # self.Delta_etak = Pose3D(np.zeros((3, 1)))
-        # while np.sum(self.Delta_etak) == 0:
-        #     xsk = self.robot.fs(self.robot.xsk, usk)
-
-        #     displacement = 
-
-        #     self.Deltax = 
 
         pass
 
