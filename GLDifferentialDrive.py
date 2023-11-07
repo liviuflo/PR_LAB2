@@ -87,6 +87,9 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
 
                 p_k.element[x_bin, y_bin] = pdf(0, self.sigma_d, distance)
 
+        # Normalise
+        p_k.histogram_1d = p_k.histogram_1d / np.sum(p_k.histogram_1d)
+
         return p_k
         
 
@@ -109,18 +112,23 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
                 uk = np.array([[delta_x - 1, delta_y - 1]]).T
                 print("Computing transition matrix for Uk:", uk)
 
+                grid_cell_count = self.p0.nCells
+
+                # State transition probabilities for uk
                 # n**2 rows, n**2 columns
-                p_uk = np.zeros((self.p0.nCells, self.p0.nCells))
+                p_uk = np.zeros((grid_cell_count, grid_cell_count))
 
                 # each column stores the values of p(etak|uk, etak_1)
-                for column in range(self.p0.nCells):
-                    index_y = column // self.p0.num_bins_x
-                    index_x = column % self.p0.num_bins_x
+                for column_id in range(grid_cell_count):
+                    # obtain grid coordinates from column index
+                    index_y = column_id // self.p0.num_bins_x
+                    index_x = column_id % self.p0.num_bins_x
 
+                    # obtain cell coordinates at step k-1
                     etak_1 = np.array([[self.p0.x_range[index_x], self.p0.y_range[index_y]]]).T
                     
-                    transition = self.StateTransitionProbability_4_xk_1_uk(etak_1, uk)
-                    p_uk[:, column] = transition.histogram_1d
+                    # compute transition probability
+                    p_uk[:, column_id] = self.StateTransitionProbability_4_xk_1_uk(etak_1, uk).histogram_1d
 
                 transition_matrix[delta_x, delta_y] = p_uk
 
