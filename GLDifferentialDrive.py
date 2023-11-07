@@ -162,6 +162,7 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         """
 
         total_p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
+        total_p_z.histogram_1d = np.ones_like(total_p_z.histogram_1d)
 
         for f, feature_distance in zk:
             p_z = Histogram2D(self.p0.num_bins_x, self.p0.num_bins_y, self.p0.x_range, self.p0.y_range)
@@ -175,9 +176,8 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
                     p_z.element[x_bin, y_bin] = probability
 
             p_z.histogram_1d /= np.sum(p_z.histogram_1d)
-            total_p_z.histogram_1d += p_z.histogram_1d
+            total_p_z.histogram_1d *= p_z.histogram_1d
 
-        total_p_z.histogram_1d /= len(zk)
         return total_p_z
 
     def GetInput(self, usk):
