@@ -7,7 +7,7 @@ from IndexStruct import *
 np.set_printoptions(suppress=True)  # print matrices without scientific notation
 plt.ion()  # enable interactive drawing mode
 
-# feature map. Position of 2 point features in the world frame.
+# feature map. Position of 3 point features in the world frame.
 M2D = [np.array([[7, -6]]).T,
        np.array([[0, 9]]).T,
        np.array([[-7, -6]]).T]

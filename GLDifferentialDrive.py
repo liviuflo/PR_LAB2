@@ -178,6 +178,7 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
             p_z.histogram_1d /= np.sum(p_z.histogram_1d)
             total_p_z.histogram_1d *= p_z.histogram_1d
 
+        total_p_z.histogram_1d /= np.sum(total_p_z.histogram_1d)
         return total_p_z
 
     def GetInput(self, usk):
