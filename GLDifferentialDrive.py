@@ -201,7 +201,7 @@ class GL_3DOFDifferentialDrive(GL, DR_3DOFDifferentialDrive):
         
         def true_displacement(delta):
             """ Given a metric delta, compute the corresponding cell displacement. """
-            return delta // self.cell_size
+            return absolute_displacement(delta) if delta > 0 else -absolute_displacement(delta)
 
 
         while absolute_displacement(self.Deltax) + absolute_displacement(self.Deltay) == 0:
